@@ -66,7 +66,7 @@ jobs:
           UNMERGED_PATHS=$(git diff --name-only --diff-filter=U)
           if [[ -n "$UNMERGED_PATHS" ]]; then
             echo "::error::Unresolved conflicts remain after excluding upstream workflows."
-            printf '%s\\n' "$UNMERGED_PATHS"
+            echo "$UNMERGED_PATHS"
             exit 1
           fi
 
