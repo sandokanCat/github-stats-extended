@@ -47,11 +47,28 @@ jobs:
           BASE_SHA=$(git rev-parse HEAD)
           UPSTREAM_SHA=$(git rev-parse refs/remotes/upstream/master)
 
+          MERGE_STATUS=0
           git -c user.name="github-actions[bot]" \
               -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
-              merge --no-commit --no-ff -X ours "$UPSTREAM_SHA"
+              merge --no-commit --no-ff "$UPSTREAM_SHA" || MERGE_STATUS=$?
+
+          if [[ "$MERGE_STATUS" -ne 0 ]]; then
+            UNMERGED_PATHS=$(git diff --name-only --diff-filter=U)
+
+            if [[ -z "$UNMERGED_PATHS" ]] || grep -qv '^\.github/workflows/' <<< "$UNMERGED_PATHS"; then
+              echo "::error::Upstream merge has conflicts outside .github/workflows/ or failed for another reason."
+              exit 1
+            fi
+          fi
 
           git restore --source="$BASE_SHA" --staged --worktree -- .github/workflows/
+
+          UNMERGED_PATHS=$(git diff --name-only --diff-filter=U)
+          if [[ -n "$UNMERGED_PATHS" ]]; then
+            echo "::error::Unresolved conflicts remain after excluding upstream workflows."
+            printf '%s\\n' "$UNMERGED_PATHS"
+            exit 1
+          fi
 
           git -c user.name="github-actions[bot]" \
               -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
