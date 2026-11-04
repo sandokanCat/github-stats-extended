@@ -1,6 +1,9 @@
 name: Sync upstream
 
 on:
+  push:
+    branches:
+      - master
   workflow_dispatch:
   schedule:
     - cron: "*/15 * * * *"
