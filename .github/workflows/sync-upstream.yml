@@ -49,14 +49,25 @@ jobs:
 
           git -c user.name="github-actions[bot]" \
               -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
-              merge --no-edit "$UPSTREAM_SHA"
+              merge --no-commit --no-ff -X ours "$UPSTREAM_SHA"
+
+          git restore --source="$BASE_SHA" --staged --worktree -- .github/workflows/
+
+          git -c user.name="github-actions[bot]" \
+              -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+              commit --no-edit
 
           MERGE_SHA=$(git rev-parse HEAD)
           TREE_SHA=$(git rev-parse "$MERGE_SHA^{tree}")
           MERGE_MESSAGE=$(git log -1 --format=%B "$MERGE_SHA")
 
+          if ! git diff --quiet "$BASE_SHA" "$MERGE_SHA" -- .github/workflows/; then
+            echo "::error::Upstream workflow files must not be included in the sync commit."
+            exit 1
+          fi
+
           STAGING_TAG="automation/sync-upstream-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
-          STAGING_TAG_CREATED=true
+          STAGING_TAG_CREATED=false
 
           cleanup() {
             if [[ "$STAGING_TAG_CREATED" == true ]]; then
@@ -67,6 +78,7 @@ jobs:
           trap cleanup EXIT
 
           git push origin "$MERGE_SHA:refs/tags/$STAGING_TAG"
+          STAGING_TAG_CREATED=true
 
           API_RESPONSE=$(gh api --method POST \
             "repos/${GITHUB_REPOSITORY}/git/commits" \
