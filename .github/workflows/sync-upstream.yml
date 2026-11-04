@@ -121,7 +121,9 @@ jobs:
               .parents[0].sha == $base and
               .parents[1].sha == $upstream and
               .author.name == "github-actions[bot]" and
-              .committer.name == "github-actions[bot]"
+              .author.email == "41898282+github-actions[bot]@users.noreply.github.com" and
+              .committer.name == "GitHub" and
+              .committer.email == "noreply@github.com"
             ' <<< "$API_RESPONSE" >/dev/null; then
             jq '{sha, author, committer, verification, tree, parents}' <<< "$API_RESPONSE"
             echo "::error::GitHub did not create a verified merge commit with the expected bot identity."
